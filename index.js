@@ -4,12 +4,14 @@ module.exports = Groups
 
 function Groups (opts) {
   if (!(this instanceof Groups)) return new Groups(opts)
-  this.N = 4096
-  var msize = getSize(64)
+  this._vertexSize = 4096
+  this._elementSize = 4096
+  this._modelSize = 64
+  var msize = getSize(this._modelSize)
   this.data = {
-    positions: new Float32Array(this.N*3),
-    cells: new Uint32Array(this.N*3),
-    ids: new Float32Array(this.N),
+    positions: new Float32Array(this._vertexSize*3),
+    cells: new Uint32Array(this._elementSize*3),
+    ids: new Float32Array(this._vertexSize),
     models: new Float32Array(msize.length),
     modelSize: [msize.width,msize.height],
     modelTexture: null,
@@ -20,10 +22,7 @@ function Groups (opts) {
   this._voffsets = { _last: 0 }
   this._eoffsets = { _last: 0 }
   this._ids = { _last: -1 }
-  this._lengths = {
-    positions: 0,
-    cells: 0
-  }
+  this._lengths = { positions: 0, cells: 0 }
 }
 
 Groups.prototype.getId = function (name) {
@@ -52,18 +51,17 @@ Groups.prototype.add = function (name, mesh) {
   var id = ++this._ids._last
   this._ids[name] = id
   if (id*16 >= this.data.models.length) {
-    throw new Error('TODO: resize model array')
+    this._resizeModels(this._modelSize*2)
   }
   this._mfns[id] = mesh.model
 
-  var free = this.data.positions.length - this._lengths.positions
-  if (positions.length > free) {
-    throw new Error('TODO: resize vertex array')
-    /*
-    var n = Math.log2(positions.length + free)
-      this._lengths.positions)
-    this.data.positions = new Float32Array()
-    */
+  var freeVert = this.data.positions.length - this._lengths.positions
+  if (positions.length > freeVert) {
+    this._resizeVertex(this._vertexSize*2)
+  }
+  var freeCells = this.data.cells.length - this._lengths.cells
+  if (cells.length > freeCells) {
+    this._resizeElements(this._elementSize*2)
   }
   for (var i = 0; i < cells.length; i++) {
     this.data.cells[i+this._eoffsets._last] = cells[i]
@@ -77,8 +75,42 @@ Groups.prototype.add = function (name, mesh) {
     this.data.ids[i+this._voffsets._last] = id
   }
   this.data.count += cells.length
+  this._lengths.cells += cells.length
+  this._lengths.positions += positions.length
   this._voffsets[name] = this._voffsets._last
   this._voffsets._last += positions.length/3
+}
+
+Groups.prototype._resizeModels = function (newSize) {
+  var msize = getSize(newSize)
+  this._modelSize = newSize
+  this.data.models = new Float32Array(msize.length)
+  this.data.modelSize = [msize.width,msize.height]
+}
+
+Groups.prototype._resizeVertex = function (newSize) {
+  var oldPositions = this.data.positions
+  var oldIds = this.data.ids
+  this.data.positions = new Float32Array(newSize*3)
+  this.data.ids = new Float32Array(newSize)
+  for (var i = 0; i < this._vertexSize; i++) {
+    this.data.positions[i*3+0] = oldPositions[i*3+0]
+    this.data.positions[i*3+1] = oldPositions[i*3+1]
+    this.data.positions[i*3+2] = oldPositions[i*3+2]
+    this.data.ids[i] = oldIds[i]
+  }
+  this._vertexSize = newSize
+}
+
+Groups.prototype._resizeElements = function (newSize) {
+  var oldCells = this.data.cells
+  this.data.cells = new Uint32Array(newSize*3)
+  for (var i = 0; i < this._elementSize; i++) {
+    this.data.cells[i*3+0] = oldCells[i*3+0]
+    this.data.cells[i*3+1] = oldCells[i*3+1]
+    this.data.cells[i*3+2] = oldCells[i*3+2]
+  }
+  this._elementSize = newSize
 }
 
 function istarray (x) {
