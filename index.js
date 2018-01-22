@@ -65,14 +65,16 @@ Groups.prototype.add = function (name, mesh) {
     this.data.positions = new Float32Array()
     */
   }
+  for (var i = 0; i < cells.length; i++) {
+    this.data.cells[i+this._eoffsets._last] = cells[i]
+      + this._voffsets._last
+  }
+  this._eoffsets._last += cells.length
   for (var i = 0; i < positions.length; i++) {
     this.data.positions[i+this._voffsets._last*3] = positions[i]
   }
   for (var i = 0; i < positions.length/3; i++) {
     this.data.ids[i+this._voffsets._last] = id
-  }
-  for (var i = 0; i < cells.length; i++) {
-    this.data.cells[i+this._eoffsets._last*3] = cells[i]
   }
   this.data.count += cells.length
   this._voffsets[name] = this._voffsets._last
