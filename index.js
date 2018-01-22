@@ -4,9 +4,10 @@ module.exports = Groups
 
 function Groups (opts) {
   if (!(this instanceof Groups)) return new Groups(opts)
-  this._vertexSize = 4096
-  this._elementSize = 4096
-  this._modelSize = 64
+  var size = opts.size || {}
+  this._vertexSize = (size.positions || 4096*3)/3
+  this._elementSize = (size.cells || 4096*3)/3
+  this._modelSize = size.models || 64
   var msize = getSize(this._modelSize)
   this.data = {
     positions: new Float32Array(this._vertexSize*3),
@@ -79,6 +80,12 @@ Groups.prototype.add = function (name, mesh) {
   this._lengths.positions += positions.length
   this._voffsets[name] = this._voffsets._last
   this._voffsets._last += positions.length/3
+}
+
+Groups.prototype.pack = function () {
+  this._resizeModels(this._ids._last+1)
+  this._resizeVertex(this._lengths.positions/3)
+  this._resizeElements(this._lengths.cells/3)
 }
 
 Groups.prototype._resizeModels = function (newSize) {
