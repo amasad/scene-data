@@ -34,7 +34,8 @@ Groups.prototype.getId = function (name) {
 Groups.prototype.update = function () {
   for (var i = 0; i < this._mfns.length; i++) {
     var m = this.data.models.subarray(i*16,i*16+16)
-    this._mfns[i](m)
+    var f = this._mfns[i]
+    if (typeof f === 'function') f(m)
   }
   this.data.modelTexture = this._updateTexture({
     data: this.data.models,
