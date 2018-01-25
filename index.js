@@ -18,6 +18,24 @@ function Groups (opts) {
     modelTexture: null,
     count: 0
   }
+  this._attrKeys = []
+  this._attrSizes = {}
+  if (opts.attributes) {
+    for (var i = 0; i < opts.attributes.length; i++) {
+      var attr = opts.attributes[i]
+      var m = /^(\w+)\[(\d+)\]/.exec(attr)
+      if (m) {
+        this._attrKeys.push(m[1])
+        var n = Number(m[2])
+        this._attrSizes[m[1]] = n
+        this.data[m[1]] = new Float32Array(this._vertexSize*n)
+      } else {
+        this._attrKeys.push(attr)
+        this._attrSizes[attr] = 1
+        this.data[attr] = new Float32Array(this._vertexSize)
+      }
+    }
+  }
   this._mfns = []
   this._updateTexture = opts.texture()
   this._voffsets = { _last: 0 }
@@ -60,6 +78,11 @@ Groups.prototype.add = function (name, mesh) {
   var freeVert = this.data.positions.length - this._lengths.positions
   if (positions.length > freeVert) {
     this._resizeVertex(this._vertexSize*2)
+    for (var i = 0; i < this._attrKeys.length; i++) {
+      var name = this._attrKeys[i]
+      var size = this._attrSizes[name]
+      this._resizeAttr(name, this._vertexSize*2)
+    }
   }
   var freeCells = this.data.cells.length - this._lengths.cells
   if (cells.length > freeCells) {
@@ -75,6 +98,14 @@ Groups.prototype.add = function (name, mesh) {
   }
   for (var i = 0; i < positions.length/3; i++) {
     this.data.ids[i+this._voffsets._last] = id
+  }
+  for (var i = 0; i < this._attrKeys.length; i++) {
+    var name = this._attrKeys[i]
+    var size = this._attrSizes[name]
+    var attrData = f32(mesh[name])
+    for (var j = 0; j < attrData.length; j++) {
+      this.data[name][j+this._voffsets._last*size] = attrData[j]
+    }
   }
   this.data.count += cells.length
   this._lengths.cells += cells.length
