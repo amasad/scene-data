@@ -1,187 +1,117 @@
 var getSize = require('glsl-matrix-texture')
 
-module.exports = Groups
+module.exports = Geometry
 
-function Groups (opts) {
-  if (!(this instanceof Groups)) return new Groups(opts)
-  var size = opts.size || {}
-  this._vertexSize = (size.positions || 4096*3)/3
-  this._elementSize = (size.cells || 4096*3)/3
-  this._modelSize = size.models || 64
-  var msize = getSize(this._modelSize)
-  this.data = {
-    positions: new Float32Array(this._vertexSize*3),
-    cells: new Uint32Array(this._elementSize*3),
-    ids: new Float32Array(this._vertexSize),
-    models: new Float32Array(msize.length),
-    modelSize: [msize.width,msize.height],
-    modelTexture: null,
-    count: 0
+function Geometry (opts) {
+  var self = this
+  if (!(self instanceof Geometry)) return new Geometry(opts)
+  self._data = []
+  self._idCount = 0
+  self._createTexture = opts.createTexture
+
+  self.data = {
+    positions: {
+      data: new Float32Array(0),
+      count: 0
+    },
+    ids: {
+      data: new Float32Array(0),
+      count: 0
+    },
+    elements: {
+      data: new Uint32Array(0),
+      count: 0
+    },
+    models: {
+      texture: self._createTexture(),
+      size: [0,0],
+      data: new Float32Array(0),
+      update: function () {
+        self.data.models.texture({
+          data: self.data.models.data,
+          format: 'rgba',
+          width: self.data.models.size[0],
+          height: self.data.models.size[1],
+        })
+      },
+      count: 0
+    }
   }
-  this._attrKeys = []
-  this._attrSizes = {}
-  if (opts.attributes) {
-    for (var i = 0; i < opts.attributes.length; i++) {
-      var attr = opts.attributes[i]
-      var m = /^(\w+)\[(\d+)\]/.exec(attr)
-      if (m) {
-        this._attrKeys.push(m[1])
-        var n = Number(m[2])
-        this._attrSizes[m[1]] = n
-        this.data[m[1]] = new Float32Array(this._vertexSize*n)
-      } else {
-        this._attrKeys.push(attr)
-        this._attrSizes[attr] = 1
-        this.data[attr] = new Float32Array(this._vertexSize)
+}
+
+Geometry.prototype.add = function (name, mesh) {
+  var posCount = getCount(mesh.positions,3)
+  this.data.positions.count += posCount*3
+  this.data.ids.count += posCount
+  var cellCount = getCount(mesh.cells,3)
+  this.data.elements.count += cellCount*3
+  var id = this._idCount++
+  this.data.models.count++
+  this._data.push({
+    name: name,
+    mesh: mesh,
+    id: id,
+    positionRange: [
+      this.data.positions.count - posCount*3,
+      this.data.positions.count
+    ],
+    cellRange: [
+      this.data.elements.count - cellCount*3,
+      this.data.elements.count
+    ]
+  })
+}
+
+Geometry.prototype.pack = function () {
+  this.data.positions.data = new Float32Array(this.data.positions.count)
+  this.data.ids.data = new Float32Array(this.data.ids.count)
+  this.data.elements.data = new Uint32Array(this.data.elements.count)
+  var msize = getSize(this.data.models.count)
+  this.data.models.size[0] = msize.width
+  this.data.models.size[1] = msize.height
+  this.data.models.data = new Float32Array(msize.length)
+
+  for (var i = 0; i < this._data.length; i++) {
+    var d = this._data[i]
+    var pr = d.positionRange
+    var cr = d.cellRange
+    this.data.ids.data.subarray(pr[0],pr[1]).fill(d.id)
+    if (isFlat(d.mesh.positions)) {
+      this.data.positions.data.set(d.mesh.positions,pr[0])
+    } else {
+      var l = d.mesh.positions.length
+      for (var j = 0; j < l; j++) {
+        var p = d.mesh.positions[j]
+        this.data.positions.data[pr[0]+j*3+0] = p[0]
+        this.data.positions.data[pr[0]+j*3+1] = p[1]
+        this.data.positions.data[pr[0]+j*3+2] = p[2]
+      }
+    }
+    if (isFlat(d.mesh.cells)) {
+      this.data.elements.data.set(d.mesh.cells,cr[0])
+    } else {
+      var l = d.mesh.cells.length
+      for (var j = 0; j < l; j++) {
+        var c = d.mesh.cells[j]
+        this.data.elements.data[cr[0]+j*3+0] = c[0] + pr[0]/3
+        this.data.elements.data[cr[0]+j*3+1] = c[1] + pr[0]/3
+        this.data.elements.data[cr[0]+j*3+2] = c[2] + pr[0]/3
       }
     }
   }
-  this._mfns = []
-  this._updateTexture = opts.texture()
-  this._voffsets = { _last: 0 }
-  this._eoffsets = { _last: 0 }
-  this._ids = { _last: -1 }
-  this._lengths = { positions: 0, cells: 0 }
 }
 
-Groups.prototype.getId = function (name) {
+Geometry.prototype.getId = function (name) {
   var id = this._ids[name]
   return id === undefined ? -1 : id
 }
 
-Groups.prototype.update = function () {
-  for (var i = 0; i < this._mfns.length; i++) {
-    var m = this.data.models.subarray(i*16,i*16+16)
-    var f = this._mfns[i]
-    if (typeof f === 'function') f(m)
-  }
-  this.data.modelTexture = this._updateTexture({
-    data: this.data.models,
-    width: this.data.modelSize[0],
-    height: this.data.modelSize[1],
-    format: 'rgba',
-    wrapS: 'clamp',
-    wrapT: 'clamp'
-  })
+Geometry.prototype.getName = function (id) {
+  return this._names[id]
 }
 
-Groups.prototype.add = function (name, mesh) {
-  var positions = f32(mesh.positions)
-  var cells = u32(mesh.cells)
-  var id = ++this._ids._last
-  this._ids[name] = id
-  if (id*16 >= this.data.models.length) {
-    this._resizeModels(this._modelSize*2)
-  }
-  this._mfns[id] = mesh.model
-
-  var freeVert = this.data.positions.length - this._lengths.positions
-  if (positions.length > freeVert) {
-    this._resizeVertex(this._vertexSize*2)
-    for (var i = 0; i < this._attrKeys.length; i++) {
-      var name = this._attrKeys[i]
-      var size = this._attrSizes[name]
-      this._resizeAttr(name, this._vertexSize*2)
-    }
-  }
-  var freeCells = this.data.cells.length - this._lengths.cells
-  if (cells.length > freeCells) {
-    this._resizeElements(this._elementSize*2)
-  }
-  for (var i = 0; i < cells.length; i++) {
-    this.data.cells[i+this._eoffsets._last] = cells[i]
-      + this._voffsets._last
-  }
-  this._eoffsets._last += cells.length
-  for (var i = 0; i < positions.length; i++) {
-    this.data.positions[i+this._voffsets._last*3] = positions[i]
-  }
-  for (var i = 0; i < positions.length/3; i++) {
-    this.data.ids[i+this._voffsets._last] = id
-  }
-  for (var i = 0; i < this._attrKeys.length; i++) {
-    var name = this._attrKeys[i]
-    var size = this._attrSizes[name]
-    var attrData = f32(mesh[name])
-    for (var j = 0; j < attrData.length; j++) {
-      this.data[name][j+this._voffsets._last*size] = attrData[j]
-    }
-  }
-  this.data.count += cells.length
-  this._lengths.cells += cells.length
-  this._lengths.positions += positions.length
-  this._voffsets[name] = this._voffsets._last
-  this._voffsets._last += positions.length/3
+function getCount (data, size) {
+  return isFlat(data) ? data.length / size : data.length
 }
 
-Groups.prototype.pack = function () {
-  this._resizeModels(this._ids._last+1)
-  this._resizeVertex(this._lengths.positions/3)
-  this._resizeElements(this._lengths.cells/3)
-}
-
-Groups.prototype._resizeModels = function (newSize) {
-  var msize = getSize(newSize)
-  this._modelSize = newSize
-  this.data.models = new Float32Array(msize.length)
-  this.data.modelSize = [msize.width,msize.height]
-}
-
-Groups.prototype._resizeVertex = function (newSize) {
-  var oldPositions = this.data.positions
-  var oldIds = this.data.ids
-  this.data.positions = new Float32Array(newSize*3)
-  this.data.ids = new Float32Array(newSize)
-  for (var i = 0; i < this._vertexSize; i++) {
-    this.data.positions[i*3+0] = oldPositions[i*3+0]
-    this.data.positions[i*3+1] = oldPositions[i*3+1]
-    this.data.positions[i*3+2] = oldPositions[i*3+2]
-    this.data.ids[i] = oldIds[i]
-  }
-  this._vertexSize = newSize
-}
-
-Groups.prototype._resizeElements = function (newSize) {
-  var oldCells = this.data.cells
-  this.data.cells = new Uint32Array(newSize*3)
-  for (var i = 0; i < this._elementSize; i++) {
-    this.data.cells[i*3+0] = oldCells[i*3+0]
-    this.data.cells[i*3+1] = oldCells[i*3+1]
-    this.data.cells[i*3+2] = oldCells[i*3+2]
-  }
-  this._elementSize = newSize
-}
-
-function istarray (x) {
-  return typeof x.subarray === 'function'
-}
-
-function f32 (x) {
-  if (istarray(x)) return x
-  var isFlat = Array.isArray(x[0]) ? false : true
-  if (isFlat) return Float32Array.from(x)
-  var dim = x[0].length
-  var out = new Float32Array(x.length * dim)
-  var index = 0
-  for (var i = 0; i < x.length; i++) {
-    for (var j = 0; j < x[i].length; j++) {
-      out[index++] = x[i][j]
-    }
-  }
-  return out
-}
-
-function u32 (x) {
-  if (istarray(x)) return x
-  var isFlat = Array.isArray(x[0]) ? false : true
-  if (isFlat) return Uint32Array.from(x)
-  var dim = x[0].length
-  var out = new Uint32Array(x.length * dim)
-  var index = 0
-  for (var i = 0; i < x.length; i++) {
-    for (var j = 0; j < x[i].length; j++) {
-      out[index++] = x[i][j]
-    }
-  }
-  return out
-}
+function isFlat (x) { return !Array.isArray(x[0]) }
