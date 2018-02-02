@@ -15,6 +15,8 @@ function Geometry (opts) {
   self._data = []
   self._idCount = 0
   self._createTexture = opts.createTexture
+  self._names = {}
+  self._ids = {}
 
   self.data = {
     positions: {
@@ -73,6 +75,8 @@ Geometry.prototype.add = function (name, mesh) {
   var cellCount = getCount(mesh.cells,3)
   this.data.elements.count += cellCount*3
   var id = this._idCount++
+  this._names[id] = name
+  this._ids[name] = id
   for (var i = 0; i < this._textureKeys.length; i++) {
     var key = this._textureKeys[i]
     this.data[key].count++
@@ -122,18 +126,18 @@ Geometry.prototype.pack = function () {
       }
     }
     for (var j = 0; j < this._attributeKeys.length; j++) {
-      var key = this._attributeKeys[i]
+      var key = this._attributeKeys[j]
       this.data[key].data = new Float32Array(this.data.positions.count)
       this.data[key].count = this.data.positions.count
       if (isFlat(d.mesh[key])) {
         this.data[key].data.set(d.mesh[key],pr[0])
       } else {
         var l = d.mesh[key].length
-        for (var j = 0; j < l; j++) {
+        for (var k = 0; k < l; k++) {
           var p = d.mesh[key][j]
-          this.data[key].data[pr[0]+j*3+0] = p[0]
-          this.data[key].data[pr[0]+j*3+1] = p[1]
-          this.data[key].data[pr[0]+j*3+2] = p[2]
+          this.data[key].data[pr[0]+k*3+0] = p[0]
+          this.data[key].data[pr[0]+k*3+1] = p[1]
+          this.data[key].data[pr[0]+k*3+2] = p[2]
         }
       }
     }
