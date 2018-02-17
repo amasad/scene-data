@@ -197,6 +197,12 @@ Add a piece of `geometry` to the scene. This geometry should at least have
 entries for the built-in types `geometry.positions` and `geometry.cells` plus
 whichever custom attributes have been configured.
 
+## scene.pack()
+
+Commit the data added to the scene with `.add()` to the underlying data
+structures. An explicit `pack()` step saves time doing unncessary resizing for
+large scenes.
+
 ## scene.data
 
 Scene data for attributes, elements, and textures are stored by name on the
