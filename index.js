@@ -12,9 +12,9 @@ module.exports = Geometry
 function Geometry (opts) {
   var self = this
   if (!(self instanceof Geometry)) return new Geometry(opts)
+  if (!opts) opts = {}
   self._data = []
   self._idCount = 0
-  self._createTexture = opts.createTexture
   self._names = {}
   self._ids = {}
 
@@ -37,24 +37,18 @@ function Geometry (opts) {
   }
   self._textureKeys = []
   Object.keys(opts.textures || {}).forEach(function (key) {
-    var type = opts.textures[key]
+    var tex = opts.textures[key]
+    if (typeof tex === 'string') tex = { type: tex }
     self._textureKeys.push(key)
     self.data[key] = {
       data: new Float32Array(0),
-      type: type,
-      texture: self._createTexture(),
+      type: tex.type,
       size: [0,0],
-      update: function () {
-        self.data[key].texture({
-          data: self.data[key].data,
-          type: 'float',
-          format: 'rgba',
-          width: self.data[key].size[0],
-          height: self.data[key].size[1],
-        })
-      },
       count: 0
     }
+    Object.keys(tex).forEach(function (k) {
+      if (key !== 'type') self.data[key][k] = tex[k]
+    })
   })
   self._attributeKeys = []
   Object.keys(opts.attributes || {}).forEach(function (key) {
@@ -107,7 +101,6 @@ Geometry.prototype.pack = function () {
     this.data[key].size[0] = msize.width
     this.data[key].size[1] = msize.height
     this.data[key].data = new(cons[this.data[key].type])(msize.length)
-    this.data[key].update()
   }
   for (var i = 0; i < this._data.length; i++) {
     var d = this._data[i]
