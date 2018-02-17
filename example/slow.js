@@ -97,6 +97,5 @@ for (var i = 0; i < 5000; i++) {
 regl.frame(function () {
   regl.clear({ color: [0,0,0,1], depth: true })
   camera(function () { draw(props) })
-  update()
 })
 
