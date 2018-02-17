@@ -11,5 +11,9 @@
     "scene graph",
     "glsl"
   ],
+  "repositories": [
+    { "type": "git", "url": "ssb://%vIUEobvvcnp2umDdMWIATgkYbz+ocMgVduR7++Z9nTE=.sha256" },
+    { "type": "git", "url": "git://github.com/substack/scene-data.git" }
+  ],
   "license": "BSD"
 }
