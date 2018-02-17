@@ -1,9 +1,15 @@
 {
-  "devDependencies": {
-    "gl-mat4": "^1.1.4",
-    "gl-vec3": "^1.0.3",
-    "glslify": "^6.1.0",
-    "regl": "^1.3.1",
-    "regl-camera": "^2.1.1"
-  }
+  "name": "scene-data",
+  "version": "1.0.0",
+  "dependencies": {
+    "glsl-matrix-texture": "^1.0.3"
+  },
+  "keywords": [
+    "webgl",
+    "3d",
+    "geometry",
+    "scene graph",
+    "glsl"
+  ],
+  "license": "BSD"
 }
