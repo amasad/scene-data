@@ -191,11 +191,11 @@ Attribute and texture types are these strings:
 In addition, you can specify a `[n]` after a type to set a quantity `n`.
 (Not yet implemented.)
 
-## scene.add(geometry)
+## scene.add(name, geometry)
 
-Add a piece of `geometry` to the scene. This geometry should at least have
-entries for the built-in types `geometry.positions` and `geometry.cells` plus
-whichever custom attributes have been configured.
+Add a piece of `geometry` with a string `name` to the scene. This geometry
+should at least have entries for the built-in types `geometry.positions` and
+`geometry.cells` plus whichever custom attributes have been configured.
 
 ## scene.pack()
 
