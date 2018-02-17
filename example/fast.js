@@ -9,7 +9,7 @@ var mat4 = require('gl-mat4')
 var vec3 = require('gl-vec3')
 var glsl = require('glslify')
 
-var geometry = require('../')({
+var scene = require('../')({
   textures: {
     models: { type: 'mat4', texture: regl.texture() }
   }
@@ -50,8 +50,8 @@ var draw = regl({
     position: regl.prop('positions.data'),
     id: regl.prop('ids.data')
   },
-  elements: regl.prop('elements.data'),
-  count: regl.prop('elements.count')
+  elements: regl.prop('cells.data'),
+  count: regl.prop('cells.count')
 })
 
 var gaxis = [ 0.39, 0.92, 0.04 ]
@@ -66,7 +66,7 @@ new Array(5000).fill(0).forEach(function (_,i) {
     Math.cos(theta)*r
   ])
   axes.push(vec3.random([]))
-  geometry.add('camera'+i, {
+  scene.add('camera'+i, {
     positions: [
       [-0.5,-0.5,-2.0],[-0.5,+0.5,-2.0],[+0.5,+0.5,-2.0],[+0.5,-0.5,-2.0],
       [-0.5,-0.5,+0.0],[-0.5,+0.5,+0.0],[+0.5,+0.5,+0.0],[+0.5,-0.5,+0.0],
@@ -94,17 +94,17 @@ new Array(5000).fill(0).forEach(function (_,i) {
   })
 })
 
-geometry.pack()
+scene.pack()
 update()
 
 regl.frame(function () {
   regl.clear({ color: [0,0,0,1], depth: true })
-  camera(function () { draw(geometry.data) })
+  camera(function () { draw(scene.data) })
   update()
 })
 
 function update () {
-  var models = geometry.data.models
+  var models = scene.data.models
   for (var i = 0; i < models.count; i++) {
     var m = models.data.subarray(i*16,i*16+16)
     mat4.identity(m)

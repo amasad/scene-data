@@ -29,7 +29,7 @@ function Geometry (opts) {
       type: 'float',
       count: 0
     },
-    elements: {
+    cells: {
       data: new Uint32Array(0),
       type: 'uint32[3]',
       count: 0
@@ -67,7 +67,7 @@ Geometry.prototype.add = function (name, mesh) {
   this.data.positions.count += posCount*3
   this.data.ids.count += posCount
   var cellCount = getCount(mesh.cells,3)
-  this.data.elements.count += cellCount*3
+  this.data.cells.count += cellCount*3
   var id = this._idCount++
   this._names[id] = name
   this._ids[name] = id
@@ -84,8 +84,8 @@ Geometry.prototype.add = function (name, mesh) {
       this.data.positions.count
     ],
     cellRange: [
-      this.data.elements.count - cellCount*3,
-      this.data.elements.count
+      this.data.cells.count - cellCount*3,
+      this.data.cells.count
     ]
   })
 }
@@ -93,7 +93,7 @@ Geometry.prototype.add = function (name, mesh) {
 Geometry.prototype.pack = function () {
   this.data.positions.data = new Float32Array(this.data.positions.count)
   this.data.ids.data = new Float32Array(this.data.ids.count)
-  this.data.elements.data = new Uint32Array(this.data.elements.count)
+  this.data.cells.data = new Uint32Array(this.data.cells.count)
 
   for (var i = 0; i < this._textureKeys.length; i++) {
     var key = this._textureKeys[i]
@@ -135,14 +135,14 @@ Geometry.prototype.pack = function () {
       }
     }
     if (isFlat(d.mesh.cells)) {
-      this.data.elements.data.set(d.mesh.cells,cr[0])
+      this.data.cells.data.set(d.mesh.cells,cr[0])
     } else {
       var l = d.mesh.cells.length
       for (var j = 0; j < l; j++) {
         var c = d.mesh.cells[j]
-        this.data.elements.data[cr[0]+j*3+0] = c[0] + pr[0]/3
-        this.data.elements.data[cr[0]+j*3+1] = c[1] + pr[0]/3
-        this.data.elements.data[cr[0]+j*3+2] = c[2] + pr[0]/3
+        this.data.cells.data[cr[0]+j*3+0] = c[0] + pr[0]/3
+        this.data.cells.data[cr[0]+j*3+1] = c[1] + pr[0]/3
+        this.data.cells.data[cr[0]+j*3+2] = c[2] + pr[0]/3
       }
     }
   }
