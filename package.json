@@ -1,6 +1,6 @@
 {
   "name": "scene-data",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "pack geometry data into typed arrays and textures to minimize draw calls",
   "dependencies": {
     "glsl-matrix-texture": "^1.0.3"
