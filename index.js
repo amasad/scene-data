@@ -82,9 +82,9 @@ Geometry.prototype.add = function (name, mesh) {
     name: name,
     mesh: mesh,
     id: id,
-    positionRange: [
-      this.data.positions.count - posCount * this.data.positions.quantity,
-      this.data.positions.count
+    attributeRange: [
+      this.data.ids.count - posCount,
+      this.data.ids.count
     ],
     cellRange: [
       this.data.cells.count - cellCount,
@@ -114,22 +114,22 @@ Geometry.prototype.pack = function () {
   var cellOffset = 0
   for (var i = 0; i < this._data.length; i++) {
     var d = this._data[i]
-    var pr = d.positionRange
+    var pr = d.attributeRange
     var cr = d.cellRange
-    this.data.ids.data.subarray(pr[0]/3,pr[1]/3).fill(d.id)
+    this.data.ids.data.subarray(pr[0],pr[1]).fill(d.id)
 
     for (var j = 0; j < this._attributeKeys.length; j++) {
       var key = this._attributeKeys[j]
       var r = this.data[key]
       var q = r.quantity
       if (isFlat(d.mesh[key])) {
-        r.data.set(d.mesh[key],pr[0])
+        r.data.set(d.mesh[key],pr[0]*q)
       } else {
         var l = d.mesh[key].length
         for (var k = 0; k < l; k++) {
           var p = d.mesh[key][k]
           for (var n = 0; n < q; n++) {
-            r.data[pr[0]+k*3+n] = p[n]
+            r.data[pr[0]*q+k*q+n] = p[n]
           }
         }
       }
@@ -140,9 +140,9 @@ Geometry.prototype.pack = function () {
       var l = d.mesh.cells.length
       for (var j = 0; j < l; j++) {
         var c = d.mesh.cells[j]
-        this.data.cells.data[cellOffset++] = c[0] + pr[0]/3
-        this.data.cells.data[cellOffset++] = c[1] + pr[0]/3
-        this.data.cells.data[cellOffset++] = c[2] + pr[0]/3
+        this.data.cells.data[cellOffset++] = c[0] + pr[0]
+        this.data.cells.data[cellOffset++] = c[1] + pr[0]
+        this.data.cells.data[cellOffset++] = c[2] + pr[0]
       }
     }
   }
